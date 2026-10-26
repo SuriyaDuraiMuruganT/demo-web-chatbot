@@ -549,7 +549,11 @@ function initContactForm() {
         message: messageInput ? messageInput.value.trim() : null
       };
 
-      fetch("http://127.0.0.1:8000/api/enquiries", {
+      const enquiriesEndpoint = (typeof window !== "undefined" && window.location && window.location.origin && !window.location.origin.startsWith("file://"))
+        ? `${window.location.origin}/api/enquiries`
+        : "http://127.0.0.1:8000/api/enquiries";
+
+      fetch(enquiriesEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

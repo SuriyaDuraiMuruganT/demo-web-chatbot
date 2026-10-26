@@ -10,7 +10,9 @@
 // --------------------------------------------------------------------------
 // 1. CONFIGURATION: Backend API endpoints and settings
 // --------------------------------------------------------------------------
-const CHATBOT_API_BASE = "http://127.0.0.1:8000/api";
+const CHATBOT_API_BASE = (typeof window !== "undefined" && window.location && window.location.origin && !window.location.origin.startsWith("file://"))
+  ? `${window.location.origin}/api`
+  : "http://127.0.0.1:8000/api";
 const TENANT_SLUG = "demo-company";
 
 // Curated pool of high-value, verified admissions questions for XYZ Institute
