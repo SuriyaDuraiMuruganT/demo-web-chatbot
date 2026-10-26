@@ -1,0 +1,81 @@
+# ==============================================================================
+# Docker Compose — AI Customer Support Chatbot Development & Production
+# ==============================================================================
+services:
+  # ── PostgreSQL with pgvector extension ─────────────────────────────────────
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: chatbot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-chatbot_db}
+      POSTGRES_USER: ${POSTGRES_USER:-chatbot_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chatbot_password}
+    ports:
+      # Expose only to local loopback in development to prevent external access
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chatbot_user} -d ${POSTGRES_DB:-chatbot_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Database Migration Runner ──────────────────────────────────────────────
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chatbot-migrate
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-chatbot_user}:${POSTGRES_PASSWORD:-chatbot_password}@db:5432/${POSTGRES_DB:-chatbot_db}
+      - DATABASE_SYNC_URL=postgresql+psycopg2://${POSTGRES_USER:-chatbot_user}:${POSTGRES_PASSWORD:-chatbot_password}@db:5432/${POSTGRES_DB:-chatbot_db}
+      - SECRET_KEY=${SECRET_KEY:-local-development-secret-key-min-32-chars-long}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+
+  # ── FastAPI Application Server ─────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chatbot-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=${APP_ENV:-development}
+      - APP_NAME=AI Support Chatbot
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - SECRET_KEY=${SECRET_KEY:-local-development-secret-key-min-32-chars-long}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-changeme-dev-password}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-3-small}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-chatbot_user}:${POSTGRES_PASSWORD:-chatbot_password}@db:5432/${POSTGRES_DB:-chatbot_db}
+      - DATABASE_SYNC_URL=postgresql+psycopg2://${POSTGRES_USER:-chatbot_user}:${POSTGRES_PASSWORD:-chatbot_password}@db:5432/${POSTGRES_DB:-chatbot_db}
+      - ALLOWED_ORIGINS=http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - ./knowledge:/app/knowledge:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  postgres_data:
+    name: chatbot_postgres_data

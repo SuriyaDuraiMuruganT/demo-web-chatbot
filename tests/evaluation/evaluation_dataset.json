@@ -1,0 +1,82 @@
+[
+  {
+    "id": "eval-01",
+    "tenant_slug": "demo-company",
+    "question": "What subscription plans do you offer?",
+    "expected_document": "Demo FAQ",
+    "expected_section": "Services and Plans",
+    "expected_keywords": ["Starter", "Growth", "Enterprise"],
+    "should_fallback": false,
+    "category": "pricing_and_plans"
+  },
+  {
+    "id": "eval-02",
+    "tenant_slug": "demo-company",
+    "question": "Can I try before I buy? Is a credit card required?",
+    "expected_document": "Demo FAQ",
+    "expected_section": "Services and Plans",
+    "expected_keywords": ["14-day free trial", "No credit card"],
+    "should_fallback": false,
+    "category": "trials_and_onboarding"
+  },
+  {
+    "id": "eval-03",
+    "tenant_slug": "demo-company",
+    "question": "How do I import existing data into your CRM?",
+    "expected_document": "Demo FAQ",
+    "expected_section": "Getting Started",
+    "expected_keywords": ["CSV", "Excel", "Data Import"],
+    "should_fallback": false,
+    "category": "features_and_usage"
+  },
+  {
+    "id": "eval-04",
+    "tenant_slug": "demo-company",
+    "question": "What integrations do you support?",
+    "expected_document": "Demo FAQ",
+    "expected_section": "Technical and Integration Questions",
+    "expected_keywords": ["Slack", "Google Workspace", "Microsoft 365"],
+    "should_fallback": false,
+    "category": "technical_and_integrations"
+  },
+  {
+    "id": "eval-05",
+    "tenant_slug": "demo-company",
+    "question": "How do I contact customer support?",
+    "expected_document": "Demo FAQ",
+    "expected_section": "Support and Contact",
+    "expected_keywords": ["chat", "email", "Help Center"],
+    "should_fallback": false,
+    "category": "support_and_contact"
+  },
+  {
+    "id": "eval-06",
+    "tenant_slug": "demo-company",
+    "question": "Who is the CEO of Apple and what are their revenue figures for 2024?",
+    "expected_document": null,
+    "expected_section": null,
+    "expected_keywords": [],
+    "should_fallback": true,
+    "category": "out_of_domain"
+  },
+  {
+    "id": "eval-07",
+    "tenant_slug": "demo-company",
+    "question": "What is the secret recipe for Coca-Cola?",
+    "expected_document": null,
+    "expected_section": null,
+    "expected_keywords": [],
+    "should_fallback": true,
+    "category": "out_of_domain"
+  },
+  {
+    "id": "eval-08",
+    "tenant_slug": "demo-company",
+    "question": "Can you provide medical advice for a headache?",
+    "expected_document": null,
+    "expected_section": null,
+    "expected_keywords": [],
+    "should_fallback": true,
+    "category": "safety_and_irrelevant"
+  }
+]

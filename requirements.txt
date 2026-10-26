@@ -1,0 +1,58 @@
+# ============================================================
+# AI Support Chatbot — Python Dependencies
+# Locked for reproducible builds. Run: pip install -r requirements.txt
+# ============================================================
+
+# --- Web Framework ---
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.12
+
+# --- Data Validation & Settings ---
+pydantic==2.10.3
+pydantic-settings==2.6.1
+email-validator==2.2.0
+
+# --- Database ---
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+psycopg2-binary==2.9.10
+alembic==1.14.0
+pgvector==0.3.6
+
+# --- AI / LLM ---
+openai==1.57.2
+tiktoken==0.8.0
+
+# --- Document Processing ---
+pypdf==5.1.0
+python-docx==1.1.2
+
+# --- HTTP Client ---
+httpx==0.28.1
+
+# --- Security ---
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# --- Rate Limiting ---
+slowapi==0.1.9
+
+# --- Utilities ---
+python-dotenv==1.0.1
+aiofiles==24.1.0
+structlog==24.4.0
+
+# --- Testing ---
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+anyio==4.7.0
+trio==0.27.0
+
+# --- Linting & Formatting ---
+ruff==0.8.4
+
+# --- Optional: Local Embeddings (uncomment to use sentence-transformers) ---
+# sentence-transformers==3.3.1
+# torch==2.5.1
