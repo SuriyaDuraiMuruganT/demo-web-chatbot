@@ -155,9 +155,38 @@ class HandoffService:
         settings = self._settings
         return bool(
             settings.handoff_email_to
-            and settings.smtp_host
-            and settings.smtp_username
+            and (settings.resend_api_key or (settings.smtp_host and settings.smtp_username))
         )
+
+    async def _dispatch_email(self, subject: str, body: str, msg: MIMEMultipart) -> None:
+        settings = self._settings
+        if settings.resend_api_key:
+            import httpx
+            sender = settings.handoff_email_from
+            if not sender or "gmail.com" in sender or "yourdomain.com" in sender:
+                sender = "XYZ Admissions Desk <onboarding@resend.dev>"
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                res = await client.post(
+                    "https://api.resend.com/emails",
+                    headers={
+                        "Authorization": f"Bearer {settings.resend_api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "from": sender,
+                        "to": [settings.handoff_email_to],
+                        "subject": subject,
+                        "text": body,
+                    },
+                )
+                if res.status_code >= 400:
+                    raise RuntimeError(f"Resend API error {res.status_code}: {res.text}")
+                return
+
+        # Fallback to direct SMTP
+        import asyncio
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, self._send_smtp, msg)
 
     async def _send_email_notification(
         self,
@@ -167,11 +196,7 @@ class HandoffService:
         """Send email notification to support team. Raises on failure."""
         settings = self._settings
 
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"[Support Request] {handoff.issue_summary[:60]}..."
-        msg["From"] = settings.handoff_email_from
-        msg["To"] = settings.handoff_email_to
-
+        subject = f"[Support Request] {handoff.issue_summary[:60]}..."
         body = f"""
 New customer support request received.
 
@@ -194,16 +219,17 @@ This request was submitted via the AI Support Chatbot.
 Please log in to the admin panel to update the status.
         """.strip()
 
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = settings.handoff_email_from
+        msg["To"] = settings.handoff_email_to
         msg.attach(MIMEText(body, "plain"))
 
-        # Use synchronous SMTP in an executor to avoid blocking the event loop
-        import asyncio
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, self._send_smtp, msg)
+        await self._dispatch_email(subject, body, msg)
 
     def _send_smtp(self, msg: MIMEMultipart) -> None:
         settings = self._settings
-        timeout_seconds = 15
+        timeout_seconds = 5
         if settings.smtp_port == 465:
             with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=timeout_seconds) as server:
                 server.login(settings.smtp_username, settings.smtp_password)
@@ -225,15 +251,11 @@ Please log in to the admin panel to update the status.
     ) -> dict:
         """Send website admissions enquiry email notification to the counselor desk."""
         if not self._is_email_configured():
-            logger.warning("SMTP email not configured for website enquiry notification")
+            logger.warning("Email notifications not configured for website enquiry")
             return {"sent": False, "reason": "email_not_configured"}
 
         settings = self._settings
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"[New Admissions Enquiry] {course} — {name}"
-        msg["From"] = settings.handoff_email_from
-        msg["To"] = settings.handoff_email_to
-
+        subject = f"[New Admissions Enquiry] {course} — {name}"
         body = f"""
 New Admissions Enquiry received from XYZ Institute Website.
 
@@ -253,12 +275,14 @@ Source:       XYZ Institute Contact & Admissions Form
 Please follow up with the prospective student promptly.
         """.strip()
 
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = settings.handoff_email_from
+        msg["To"] = settings.handoff_email_to
         msg.attach(MIMEText(body, "plain"))
 
-        import asyncio
-        loop = asyncio.get_event_loop()
         try:
-            await loop.run_in_executor(None, self._send_smtp, msg)
+            await self._dispatch_email(subject, body, msg)
             logger.info("Website enquiry email dispatched to %s for %s", settings.handoff_email_to, name)
             return {"sent": True}
         except Exception as e:

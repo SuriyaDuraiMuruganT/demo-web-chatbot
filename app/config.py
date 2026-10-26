@@ -136,6 +136,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("smtp_password", "smtp_pass"),
     )
     smtp_tls: bool = Field(default=True)
+    resend_api_key: str = Field(default="")
 
     # --- Analytics ---
     analytics_retention_days: int = 90
