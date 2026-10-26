@@ -103,3 +103,37 @@ class HandoffRequest(Base):
 
     def __repr__(self) -> str:
         return f"<HandoffRequest id={self.id} status={self.status}>"
+
+
+class WebsiteEnquiry(Base):
+    """
+    Direct admissions enquiry submitted via the website contact form.
+    Stored in Supabase table 'website_enquiries' for CRM, counselor review, and Google Sheets sync.
+    """
+
+    __tablename__ = "website_enquiries"
+    __table_args__ = (
+        Index("ix_enquiry_created_at", "created_at"),
+        Index("ix_enquiry_course", "course"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    phone: Mapped[str] = mapped_column(String(50), nullable=False)
+    course: Mapped[str] = mapped_column(String(200), nullable=False)
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="new", comment="new | contacted | enrolled | closed"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    def __repr__(self) -> str:
+        return f"<WebsiteEnquiry id={self.id} name={self.name} course={self.course}>"
+

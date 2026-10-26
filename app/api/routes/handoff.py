@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.conversation import Conversation
+from app.models.handoff import WebsiteEnquiry
 from app.schemas.handoff import (
     HandoffRequest,
     HandoffResponse,
@@ -120,12 +121,27 @@ async def create_handoff(
 async def create_website_enquiry(
     request: Request,
     body: WebsiteEnquiryRequest,
+    db: AsyncSession = Depends(get_db),
     handoff_service: HandoffService = Depends(get_handoff_service),
 ) -> WebsiteEnquiryResponse:
     """
     Submit an admissions enquiry from the website contact form.
-    Dispatches an automated email notification to the admissions desk (SUPPORT_NOTIFICATION_EMAIL).
+    Persists prospect to Supabase ('website_enquiries' table) and dispatches email notification.
     """
+    # 1. Save directly to Supabase
+    enquiry = WebsiteEnquiry(
+        name=body.name,
+        email=str(body.email),
+        phone=body.phone,
+        course=body.course,
+        message=body.message,
+        status="new",
+    )
+    db.add(enquiry)
+    await db.commit()
+    await db.refresh(enquiry)
+
+    # 2. Attempt email notification
     result = await handoff_service.send_website_enquiry(
         name=body.name,
         email=str(body.email),
@@ -137,10 +153,11 @@ async def create_website_enquiry(
     if result.get("sent"):
         msg = "Your admissions enquiry has been received and our admissions counselors have been notified via email."
     else:
-        msg = "Your enquiry has been recorded in our admissions system. Our counselors will reach out to you shortly."
+        msg = "Your enquiry has been successfully recorded in our admissions system. Our counselors will reach out to you shortly."
 
     return WebsiteEnquiryResponse(
         success=True,
         message=msg,
         notification_sent=bool(result.get("sent")),
+        enquiry_id=enquiry.id,
     )

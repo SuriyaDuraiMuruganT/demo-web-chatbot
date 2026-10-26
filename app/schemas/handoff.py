@@ -92,3 +92,4 @@ class WebsiteEnquiryResponse(BaseModel):
     success: bool
     message: str
     notification_sent: bool
+    enquiry_id: uuid.UUID | None = None
