@@ -18,10 +18,14 @@ from app.schemas.handoff import (
     WebsiteEnquiryRequest,
     WebsiteEnquiryResponse,
 )
+from app.config import get_settings
 from app.security.auth import get_session_token_from_header
 from app.security.rate_limit import limiter
 from app.security.session import verify_conversation_access
 from app.services.handoff_service import HandoffService, get_handoff_service
+
+import structlog
+logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/api", tags=["Handoff"])
 
@@ -141,7 +145,27 @@ async def create_website_enquiry(
     await db.commit()
     await db.refresh(enquiry)
 
-    # 2. Attempt email notification
+    # 2. Sync directly to Google Sheets if configured
+    settings = get_settings()
+    if settings.google_sheet_webhook_url:
+        import httpx
+        try:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+                await client.post(
+                    settings.google_sheet_webhook_url,
+                    json={
+                        "name": body.name,
+                        "email": str(body.email),
+                        "phone": body.phone,
+                        "course": body.course,
+                        "message": body.message,
+                    },
+                )
+                logger.info("google_sheets_sync_success", name=body.name)
+        except Exception as e:
+            logger.warning("google_sheets_sync_failed", error=str(e))
+
+    # 3. Attempt email notification
     result = await handoff_service.send_website_enquiry(
         name=body.name,
         email=str(body.email),

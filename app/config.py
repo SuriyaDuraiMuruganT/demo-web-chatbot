@@ -137,6 +137,10 @@ class Settings(BaseSettings):
     )
     smtp_tls: bool = Field(default=True)
     resend_api_key: str = Field(default="")
+    google_sheet_webhook_url: str = Field(
+        default="https://script.google.com/macros/s/AKfycbyfVnA1fanZw1C45T5iE6Bqm9FkpLga4sUr3JWSgwChK--zU9yu0HrjjlUHZFfMziFs/exec",
+        validation_alias=AliasChoices("google_sheet_webhook_url", "sheets_webhook_url"),
+    )
 
     # --- Analytics ---
     analytics_retention_days: int = 90
